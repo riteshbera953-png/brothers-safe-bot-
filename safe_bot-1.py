@@ -17,6 +17,7 @@ Run:
 """
 
 import asyncio
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
@@ -27,7 +28,7 @@ ADMIN_CHAT_ID = 5999496406
 SUPER_ADMIN_ID = 5999496406
 
 # IMPORTANT: use a newly generated token; do not reuse the token exposed in chat.
-BOT_TOKEN = "PASTE_NEW_BOT_TOKEN_HERE"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 
 FORCE_JOIN_ENABLED = True
 FORCE_JOIN_CHANNEL_IDS = [
@@ -116,7 +117,7 @@ async def check_join(callback, bot: Bot):
 
 async def main():
     if not BOT_TOKEN or BOT_TOKEN == "PASTE_NEW_BOT_TOKEN_HERE":
-        raise RuntimeError("Set BOT_TOKEN to your newly generated Telegram bot token.")
+        raise RuntimeError("BOT_TOKEN is missing. Set it in Render Environment Variables.")
     bot = Bot(token=BOT_TOKEN)
     try:
         await dp.start_polling(bot)
