@@ -22,6 +22,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.exceptions import TelegramBadRequest
+from aiohttp import web
 
 # Hard-coded admin configuration
 ADMIN_CHAT_ID = 5999496406
@@ -115,15 +116,38 @@ async def check_join(callback, bot: Bot):
             await callback.message.answer("Welcome! Channel membership verified.")
 
 
+async def health_check(request):
+    return web.json_response({"status": "ok", "service": "telegram-bot"})
+
+
+async def start_health_server():
+    # Render Web Services must bind to the PORT environment variable.
+    port = int(os.getenv("PORT", "10000"))
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    app.router.add_get("/health", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host="0.0.0.0", port=port)
+    await site.start()
+    print(f"Health server listening on 0.0.0.0:{port}")
+    return runner
+
+
 async def main():
-    if not BOT_TOKEN or BOT_TOKEN == "PASTE_NEW_BOT_TOKEN_HERE":
+    if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is missing. Set it in Render Environment Variables.")
     bot = Bot(token=BOT_TOKEN)
+    runner = None
     try:
+        runner = await start_health_server()
         await dp.start_polling(bot)
     finally:
+        if runner is not None:
+            await runner.cleanup()
         await bot.session.close()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
